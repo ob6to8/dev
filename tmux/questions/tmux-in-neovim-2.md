@@ -1,29 +1,70 @@
-mark@Marks-MacBook-Pro-2 repos % claude -p "examine sessions and itsjustshell to get a sense of how i am working with all ephemeral claude -p sessions. i am 
-doing everything within neovim and the :term in neovim. could tmux be a good option for running multiple "agents", ie. claude -p calls in terminal tabs?"
-Yes — and it fits your itsjustshell thesis better than any alternative. tmux is another Unix primitive (a process that owns ptys), not a framework layered on
- top of one.
+mark@Marks-MacBook-Pro-2 repos % claude -p "see sessions/tmux/questions/tmux-in-nvim.md, and consider the workflow described. the main advantage to me in having tabbed terminals within neovim is one interface with vim copy and paste from the terminal. the idea of tabs is useful because I use claude -p primarily, so for me the whole conversation history exists in shell. for this reason i don't think having nvim within different terminal panes would work for me, as i couldn't use the vim yank approach across those neovim instances, as far as i know. so, it looks like for me, it would be about trying to maximize the usage of the built in terminal. am i sacrificing anything with this? what conflicts might there be by running tmux in neovim? how can i test?" --model claude-opus-5
 
-**What you already found** (`sessions/tmux/questions/tmux-in-nvim.md`): nvim's own `:tabnew`/`gt` only gives tab-*like* switching between terminal buffers — 
-no detach, no persistence if nvim dies. Real tabs with persistence means tmux outside, nvim inside one pane.
+Read it. Checked your setup: nvim 0.11.2, tmux 3.7b installed but no `~/.tmux.conf`, `init.lua` has no terminal config at all.
 
-**For your specific use case — parallel `claude -p` agents — that's a stronger case, not just a nice-to-have:**
+## Don't nest — it defeats your own goal
 
-- **Each pane = an independent node.** This maps directly onto what the graph-engineering session already noted about your `sessions` repo: `claude -p` calls
- are stateless, file-in/file-out nodes. tmux panes give you the runtime container for that — one process per node, visually separated, independently killable
-/restartable without taking down the others.
-- **Detach/reattach solves your actual pain point.** A long `claude -p` call s
-ly — `tmux attach` picks the session back up. Neither Warp tabs nor nvim `:ter
-- **It sidesteps the Warp freeze bug you hit** (`sessions/warp/troubleshooting
-aude -p`'s hook lifecycle. Inside tmux, Warp only ever sees one long-lived pro
-ude -p` invocati
-ons directly, so there's nothing for the plugin to latch onto and desync. Clea
-- **`send-keys` gives you scriptable fan-out**, which is the actual "run N age
+The decisive point isn't key conflicts, it's this: **tmux paints a fixed-size screen.** When tmux runs inside `:terminal`, nvim's terminal buffer only captures the frames tmux draws. Scrollback lives in *tmux's* history buffer, which nvim never sees. So `<C-\><C-n>` then `gg` gets you one screenful, not the conversation. You'd trade your one real advantage for tab management you can get from nvim tabs anyway.
 
-```bash
-for topic in a b c; do
-  tmux new-window -n "$topic" "claude -p 'research $topic' > $topic.md"
-done
+Same reason your instinct about nvim-inside-tmux-panes is right: separate nvim instances = separate register spaces, no cross-yank.
+
+## What you're actually sacrificing
+
+Less than usual, because `claude -p` is one-shot print mode — no full-screen TUI, no alternate screen, no Esc contention with Claude's input box. Most of the classic "nvim terminal is a bad terminal" complaints don't apply to you.
+
+What's left:
+
+1. **Scrollback cap.** Default 10000 lines per buffer, hard max 100000. Long sessions silently drop from the top. Set it to the max.
+2. **No reflow.** From `:help 'scrollback'` — off-screen lines are *not* reflown on horizontal resize. Change your window width mid-session and old output stays wrapped at the old width. Pick a width and stay there.
+3. **Fragility.** nvim crash, plugin update, or `:qa` kills every session's history at once. tmux would survive that; nvim won't. This is your real exposure — mitigate by logging, not by nesting.
+4. **Throughput.** libvterm is slower than a native terminal on floods of output (a big `cat`, a verbose build). Streaming tokens are fine.
+5. **No image protocols** (sixel/kitty graphics). Probably irrelevant to you.
+
+## Config to add
+
+```lua
+-- terminal
+vim.opt.scrollback = 100000
+
+vim.api.nvim_create_autocmd("TermOpen", {
+  callback = function()
+    vim.opt_local.number = false
+    vim.opt_local.relativenumber = false
+    vim.opt_local.signcolumn = "no"
+    vim.cmd("startinsert")
+  end,
+})
+
+vim.keymap.set("n", "<leader>t", ":tabnew | terminal<CR>", { silent = true })
+vim.keymap.set("t", "<C-t>", "<C-\\><C-n>", { silent = true })  -- leave terminal mode
 ```
-or `tmux new-session -d`, `split-window`, `send-keys ... Enter` per pane if yo
 
-**One tension worth naming**: this only externalizes the container, not the ro
+Note `<leader>t` and `<C-t>` are free in your current `init.lua` (you're using `<leader>` + e/f/p/g/b/r/a). Don't map `<Esc>` to exit terminal mode — it breaks shell readline.
+
+For the fragility problem, log rather than nest. Wrap your invocation so history lands on disk too:
+
+```sh
+claude -p "..." | tee -a ~/claude-logs/$(date +%F).log
+```
+
+## How to test
+
+**1. Does the full history survive the buffer?**
+```
+nvim
+:set scrollback=100000
+:tabnew | terminal
+```
+then in the shell:
+```sh
+seq 1 50000
+```
+`<C-t>`, then `:$` — should land on ~50000. Then `gg`, `"+yG`, paste somewhere. That's your whole workflow in one shot.
+
+**2. Prove the tmux nesting failure.** Same nvim, `:tabnew | terminal tmux`, run `seq 1 5000` inside tmux, then `<C-t>` and `gg`. You'll see one screen, not 5000 lines. Confirms the argument above rather than taking my word for it.
+
+**3. Reflow.** Run `seq 1 200` with a wide window, then narrow the nvim window and scroll up. Watch the old lines not re-wrap.
+
+**4. Throughput.** `time (find / -type f 2>/dev/null | head -200000)` in a `:terminal` vs. your normal terminal app. Tells you whether the libvterm penalty is something you'd notice.
+
+**5. Tab ergonomics at scale.** Open 6 terminal tabs, do real work for a session, and see whether unnamed numbered tabs are enough. If not, `toggleterm.nvim` or a tabline plugin is the fix — still no tmux.
