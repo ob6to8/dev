@@ -1,4 +1,4 @@
-SCHEMA:
+# SCHEMA
 xxxx-xx-xx-<exchange-name>.md
 
 ---
@@ -13,15 +13,22 @@ deps: <nil or blank>
 
 ## Prompt
 #human-authored
-...
+
+<body>
 
 ## Response
 #agent-authored
-...
+
+<body>
+
+## Side Effects
+#agent-authored
+<list of side effects: files created, files modified, processes carried out>
 
 
+# EXAMPLES
 
-EXAMPLE 1:
+### EXAMPLE 1
 2026-08-08-.md
 
 ---
@@ -44,8 +51,12 @@ What is a banana
 
 A fruit
 
+## Side Effects
+#agent-authored
 
-EXAMPLE 2:
+created persistent record (this document)
+
+### EXAMPLE 2
 2026-08-08-.md
 
 ---
@@ -61,9 +72,17 @@ deps: <link-to-the-file-path-of-example-1.md>
 ## Prompt
 #human-authored
 
-Where do bananas grow
+Where do bananas grow? Perist an analysis of banana trees
 
 ## Response
 #agent-authored
 
 On trees
+Analysis peristed 
+
+
+## Side Effects
+#agent-authored
+
+created persistent record (this document)
+created ./bananas/banana-tree.analysis.md

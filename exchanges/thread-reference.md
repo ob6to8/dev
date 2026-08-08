@@ -1,4 +1,4 @@
-SCHEMA:
+# SCHEMA
 xxxx-xx-xx-<exchange-name>.md
 
 ---
