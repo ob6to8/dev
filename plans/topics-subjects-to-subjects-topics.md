@@ -117,30 +117,18 @@ Please answer inline (edit this file directly) so a future session can execute w
 
 ## Execution checklist (for the session that carries this out)
 
-- [x] Confirm all "Open questions" above have operator answers.
-- [x] Re-run `find . -not -path './.git*' | sort` to confirm no files have changed since this plan was written (avoid clobbering new work).
-- [x] `git mv` each file per the (possibly-revised) mapping table.
-- [x] Recreate empty placeholder dirs per answer to Q8 if wanted. (Q8 answer: drop — not recreated.)
-- [x] Verify no topic dir (`commands/`, `how-to/`, `info/`, `questions/`, `troubleshooting/`) remains at repo root — everything should hang off a subject dir instead.
-- [x] `git status` review before commit — check nothing unexpected got swept in.
-- [x] Commit with a message describing the topics/subjects → subjects/topics inversion.
+- [ ] Confirm all "Open questions" above have operator answers.
+- [ ] Re-run `find . -not -path './.git*' | sort` to confirm no files have changed since this plan was written (avoid clobbering new work).
+- [ ] `git mv` each file per the (possibly-revised) mapping table.
+- [ ] Recreate empty placeholder dirs per answer to Q8 if wanted.
+- [ ] Verify no topic dir (`commands/`, `how-to/`, `info/`, `questions/`, `troubleshooting/`) remains at repo root — everything should hang off a subject dir instead.
+- [ ] `git status` review before commit — check nothing unexpected got swept in.
+- [ ] Commit with a message describing the topics/subjects → subjects/topics inversion.
 
-## Execution notes (2026-08-07)
+## Follow-up questions (execution session, 2026-08-07)
 
-All open questions had operator answers (Q4 was resolved as "delete"). Final structure:
+Re-checked the repo (`find . -not -path './.git*' | sort`) — matches the plan exactly, nothing has changed since this doc was written. All open questions have operator answers except one:
 
-```
-bash/commands/shell-commands.md
-bash/how-to/extract-fenced-code-blocks.md   (was root file `shell`)
-claude-p/commands/askq.sh
-claude-p/how-to/capture-a-response-into-a-file.md
-claude-p/info/full-claude-p-flag-list.md
-claude-p/info/system-prompt.md              (was root `claude-p.md`, per Q5)
-elixir/commands/elixir-in-shell.md
-neovim/commands/tabs.md
-tmux/questions/tmux-in-nvim.md              (tmux promoted to its own subject, per Q3)
-warp/troubleshooting/2026-08-07-troubleshooting-claude-code-p-tab.md
-```
-
-Deleted: `test.txt`, `exec-commands/`, `how-to/shell/`, and all other now-empty topic directories (`commands/`, `how-to/`, `info/`, `questions/`, `troubleshooting/`).
+- **Q4 (`exec-commands/`, empty, root-level) is still unanswered.** Every other question (Q1, Q2, Q3, Q5, Q6, Q7, Q8, Q9) has an answer, so this is the only blocker to execution. Please answer inline above under Q4, or here:
+  - **Answer:**
 
