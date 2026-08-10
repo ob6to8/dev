@@ -1,4 +1,4 @@
-#human-written
+#human-authored
 
 Exchanges represent atomic single turn operator-agent prompt-response interacitions.
 ./Exchanges is a dated titled immutable series of files persisting each exchange in sequential order of creation.
